@@ -51,7 +51,7 @@ def create_address(payload, person_id):
         abort(404, description="person does not exist")
     # If there are no AddressSegment records present for the person, we can go
     # ahead and create with no additional logic.
-    elif len(person.address_segments) == 0:
+    else:
         address_segment = AddressSegment(
             street_one=payload.get("street_one"),
             street_two=payload.get("street_two"),
@@ -61,16 +61,34 @@ def create_address(payload, person_id):
             start_date=payload.get("start_date"),
             person_id=person_id,
         )
+        if len(person.address_segments) == 0:
 
-        db.session.add(address_segment)
-        db.session.commit()
-        db.session.refresh(address_segment)
-    else:
-        # TODO: Implementation
-        # If there are one or more existing AddressSegments, create a new AddressSegment
-        # that begins on the start_date provided in the API request and continues
-        # into the future. If the start_date provided is not greater than most recent
-        # address segment start_date, raise an Exception.
-        raise NotImplementedError()
+            db.session.add(address_segment)
+            db.session.commit()
+            db.session.refresh(address_segment)
+        else:
+            # TODO: Implementation
+            # If there are one or more existing AddressSegments, create a new AddressSegment
+            # that begins on the start_date provided in the API request and continues
+            # into the future. If the start_date provided is not greater than most recent
+            # address segment start_date, raise an Exception.
+            seg: AddressSegment
+            current_addresses = {seg.start_date: seg for seg in person.address_segments}
+            start_date = address_segment.start_date
+
+            if start_date in current_addresses.keys():
+                raise ValueError(
+                    f'Address segment with start date {start_date} already exists for {person}')
+            latest = max(current_addresses.keys())
+            if address_segment.start_date > latest:
+                # insert new segment
+                db.session.add(address_segment)
+                db.session.commit()
+                db.session.refresh(address_segment)
+
+                # TODO: update prior latest segment
+            else:
+                raise ValueError(
+                    f'Address segment start date {start_date} is not greater than most recent ({latest}) for {person}')
 
     return jsonify(AddressSchema().dump(address_segment))
