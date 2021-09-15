@@ -34,3 +34,11 @@ class AddressSegment(db.Model):
 
     start_date = db.Column(db.Date(), nullable=False)
     end_date = db.Column(db.Date(), nullable=True)
+
+    def __str__(self):
+        person = f'{self.person_id}/{self.id}'
+        address = f'{self.street_one}/{self.street_two}/{self.city}/{self.zip_code}'
+        dates = f'{self.start_date}-{self.end_date or "Present"}'
+        return f'{person}/{address}/{dates}'
+
+    __repr__ = __str__
